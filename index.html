@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Profile</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { --c1:#7c3aed; --c2:#06b6d4; --c3:#f472b6; --bg:#0b0f2a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    color: #fff; background: var(--bg); transition: background .4s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 18px 20px 26px; user-select: none; -webkit-user-select: none;
+  }
+  .blob { position: fixed; border-radius: 50%; filter: blur(70px); opacity: .85; z-index: 0; transition: background .4s; pointer-events: none; }
+  .b1 { width: 260px; height: 260px; background: var(--c1); top: -60px; left: -80px; }
+  .b2 { width: 240px; height: 240px; background: var(--c2); bottom: -50px; right: -70px; }
+  .b3 { width: 180px; height: 180px; background: var(--c3); top: 48%; left: 55%; }
+
+  .persp { position: relative; z-index: 1; perspective: 900px; width: 100%; max-width: 360px; touch-action: none; }
+  .card { position: relative; aspect-ratio: 1.586; transform-style: preserve-3d; will-change: transform; cursor: grab; }
+  .face {
+    position: absolute; inset: 0; border-radius: 24px; padding: 20px 22px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background: linear-gradient(135deg, rgba(255,255,255,.3), rgba(255,255,255,.08));
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: 0 24px 50px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .back { transform: rotateY(180deg); }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .avatar {
+    width: 48px; height: 48px; flex: none; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center; font-size: 20px; font-weight: 600;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: 2px solid rgba(255,255,255,.6);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .name { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .handle { font-size: 13px; color: rgba(255,255,255,.75); }
+  .tg { width: 26px; height: 26px; flex: none; opacity: .9; }
+  .lbl { font-size: 11px; color: rgba(255,255,255,.68); }
+  .big { font-size: 22px; font-weight: 600; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+  .bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+  .val { font-size: 16px; font-weight: 600; }
+  .pill { padding: 4px 12px; border-radius: 99px; font-size: 12px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3); }
+  .btitle { font-size: 15px; font-weight: 600; }
+  .brow { display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.14); }
+  .brow:last-of-type { border-bottom: none; }
+  .brow span:first-child { color: rgba(255,255,255,.68); }
+  .flipnote { font-size: 11px; color: rgba(255,255,255,.6); text-align: center; }
+
+  .dots { position: relative; z-index: 1; display: flex; gap: 14px; margin-top: 20px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); cursor: pointer; }
+  .dot.on { border-color: #fff; transform: scale(1.15); }
+
+  .chips { position: relative; z-index: 1; display: flex; gap: 10px; margin-top: 18px; width: 100%; max-width: 360px; }
+  .chip {
+    flex: 1; padding: 11px 14px; border-radius: 16px; cursor: pointer;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .chip:active { transform: scale(.97); background: rgba(255,255,255,.2); }
+
+  .btns { position: relative; z-index: 1; display: flex; gap: 10px; margin-top: 12px; width: 100%; max-width: 360px; }
+  .btn {
+    flex: 1; padding: 12px 8px; border-radius: 14px; font-size: 14px; font-weight: 600; color: #fff;
+    border: 1px solid rgba(255,255,255,.3); cursor: pointer;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .btn:active { transform: scale(.97); }
+  .primary { background: rgba(59,130,246,.75); }
+  .success { background: rgba(34,197,94,.75); }
+  .danger  { background: rgba(239,68,68,.75); }
+  .hint { position: relative; z-index: 1; margin-top: 14px; font-size: 12px; color: rgba(255,255,255,.65); min-height: 16px; text-align: center; }
+
+  #overlay { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; background: rgba(5,8,25,.92); }
+  #overlay img { max-width: 100%; max-height: 62vh; border-radius: 16px; user-select: auto; -webkit-user-select: auto; -webkit-touch-callout: default; }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+  <div class="persp" id="stage">
+    <div class="card" id="card">
+      <div class="face front">
+        <div class="top">
+          <div class="who">
+            <div class="avatar" id="avatar">?</div>
+            <div style="min-width:0">
+              <div class="name" id="name">Loading…</div>
+              <div class="handle" id="handle"></div>
+            </div>
+          </div>
+          <svg class="tg" viewBox="0 0 24 24" fill="#fff"><path d="M21.9 4.1 2.7 11.5c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.8-.8l3.2-15.2c.3-1.3-.5-1.9-1.5-1.4zM8.5 13.7l9.7-6.1c.5-.3.9-.1.5.2l-8.1 7.3-.3 3.4z"/></svg>
+        </div>
+        <div>
+          <div class="lbl">User ID</div>
+          <div class="big" id="uid">—</div>
+        </div>
+        <div class="bottom">
+          <div><div class="lbl">DC ID</div><div class="val" id="dc">—</div></div>
+          <div><div class="lbl">Language</div><div class="val" id="lang">—</div></div>
+          <div class="pill" id="prem" hidden>Premium</div>
+        </div>
+      </div>
+
+      <div class="face back">
+        <div class="btitle">Account details</div>
+        <div>
+          <div class="brow"><span>Member since</span><span id="since">—</span></div>
+          <div class="brow"><span>Account age</span><span id="age">—</span></div>
+          <div class="brow"><span>Profile link</span><span id="link">—</span></div>
+        </div>
+        <div class="flipnote">Age is an estimate from your ID · tap to flip back</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dots" id="dots"></div>
+
+  <div class="chips">
+    <div class="chip" data-copy="id"><div class="lbl">Copy ID</div><div class="val" id="chipId">—</div></div>
+    <div class="chip" data-copy="dc"><div class="lbl">Copy DC</div><div class="val" id="chipDc">—</div></div>
+  </div>
+
+  <div class="btns">
+    <button class="btn primary" id="invite">Invite</button>
+    <button class="btn success" id="share">Share card</button>
+    <button class="btn danger" id="close">Close</button>
+  </div>
+  <div class="hint" id="hint">Drag the card to tilt · tap it to flip</div>
+
+  <div id="overlay">
+    <img id="shot" alt="Your profile card">
+    <div class="lbl" style="font-size:13px">Press and hold the image to save or share</div>
+    <button class="btn danger" id="ovClose" style="flex:none;width:140px">Close</button>
+  </div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  tg?.ready(); tg?.expand();
+  try { tg?.disableVerticalSwipes?.(); } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const u = tg?.initDataUnsafe?.user || {
+    id: 7012345678, first_name: "Demo", last_name: "User",
+    username: "demo_user", language_code: "en", is_premium: true
+  };
+  const dc = q.get("dc") || "N/A";
+  const bot = q.get("bot");
+  const photo = u.photo_url || q.get("photo");
+  const fullName = [u.first_name, u.last_name].filter(Boolean).join(" ");
+  const invite = bot ? `https://t.me/${bot}?start=ref_${u.id}` : "";
+
+  // ---------- fill card ----------
+  $("name").textContent = fullName;
+  $("handle").textContent = u.username ? "@" + u.username : "No username";
+  $("uid").textContent = String(u.id).replace(/(\d{4})(?=\d)/g, "$1 ");
+  $("dc").textContent = dc === "N/A" ? "N/A" : "DC " + dc;
+  $("lang").textContent = (u.language_code || "—").toUpperCase();
+  $("chipId").textContent = u.id;
+  $("chipDc").textContent = dc;
+  $("link").textContent = u.username ? "t.me/" + u.username : "No username";
+  if (u.is_premium) $("prem").hidden = false;
+  if (!invite) $("invite").style.display = "none";
+
+  const av = $("avatar");
+  const letter = () => { av.textContent = (u.first_name || "?")[0].toUpperCase(); };
+  letter();
+  if (photo) {
+    const img = new Image();
+    img.onload = () => { av.textContent = ""; av.appendChild(img); };
+    img.referrerPolicy = "no-referrer";
+    img.src = photo;
+  }
+
+  // ---------- account age (rough estimate from ID) ----------
+  const ANCH = [[2.7e6,2013.8],[1e8,2014.6],[2e8,2015.7],[3e8,2016.1],[5e8,2017.8],[1e9,2019.9],
+                [2e9,2021.0],[5e9,2022.2],[6e9,2023.0],[7e9,2024.2],[8e9,2025.2]];
+  function joinedYear(id) {
+    if (id <= ANCH[0][0]) return ANCH[0][1];
+    for (let i = 1; i < ANCH.length; i++) {
+      if (id <= ANCH[i][0]) {
+        const [a, ay] = ANCH[i-1], [b, by] = ANCH[i];
+        return ay + (by - ay) * (id - a) / (b - a);
+      }
+    }
+    return ANCH[ANCH.length-1][1];
+  }
+  const jy = joinedYear(u.id);
+  const nowY = new Date().getFullYear() + new Date().getMonth() / 12;
+  const yrs = Math.max(0, nowY - jy);
+  $("since").textContent = "~" + Math.floor(jy);
+  $("age").textContent = yrs < 1 ? "< 1 year" : "~" + yrs.toFixed(1) + " years";
+
+  // ---------- themes ----------
+  const THEMES = {
+    purple: { c1:"#7c3aed", c2:"#06b6d4", c3:"#f472b6", bg:"#0b0f2a" },
+    ocean:  { c1:"#0ea5e9", c2:"#2563eb", c3:"#22d3ee", bg:"#06142b" },
+    sunset: { c1:"#f97316", c2:"#ec4899", c3:"#facc15", bg:"#240c1c" },
+    mint:   { c1:"#10b981", c2:"#06b6d4", c3:"#a3e635", bg:"#06201c" },
+  };
+  let theme = "purple";
+  function setTheme(n) {
+    theme = n; const t = THEMES[n], r = document.documentElement.style;
+    ["c1","c2","c3","bg"].forEach(k => r.setProperty("--" + k, t[k]));
+    document.querySelectorAll(".dot").forEach(d => d.classList.toggle("on", d.dataset.t === n));
+    try { tg?.setHeaderColor?.(t.bg); tg?.setBackgroundColor?.(t.bg); } catch (e) {}
+    try { localStorage.setItem("theme", n); } catch (e) {}
+  }
+  Object.keys(THEMES).forEach(n => {
+    const d = document.createElement("div");
+    d.className = "dot"; d.dataset.t = n;
+    d.style.background = `linear-gradient(135deg, ${THEMES[n].c1}, ${THEMES[n].c2})`;
+    d.onclick = () => setTheme(n);
+    $("dots").appendChild(d);
+  });
+  let saved = null; try { saved = localStorage.getItem("theme"); } catch (e) {}
+  setTheme(THEMES[saved] ? saved : "purple");
+
+  // ---------- tilt + tap to flip ----------
+  const card = $("card"), stage = $("stage"), MAX = 18;
+  let rx = 0, ry = 0, flip = 0, sc = 1, touching = false, start = null;
+  function render(tr) {
+    card.style.transition = tr;
+    card.style.transform = `rotateX(${rx.toFixed(1)}deg) rotateY(${(ry + flip).toFixed(1)}deg) scale(${sc})`;
+  }
+  function tilt(e) {
+    const r = card.getBoundingClientRect();
+    let x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    x = Math.max(-.3, Math.min(1.3, x)); y = Math.max(-.3, Math.min(1.3, y));
+    rx = -(y - .5) * 2 * MAX; ry = (x - .5) * 2 * MAX; sc = 1.04;
+    render("transform .08s linear");
+  }
+  stage.addEventListener("pointerdown", e => {
+    touching = true; card.style.cursor = "grabbing";
+    start = { x: e.clientX, y: e.clientY, t: Date.now() };
+    tilt(e);
+  });
+  document.addEventListener("pointermove", e => { if (touching) tilt(e); });
+  function release(e, cancelled) {
+    if (!touching) return;
+    touching = false; card.style.cursor = "grab";
+    const tap = !cancelled && start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8 && Date.now() - start.t < 350;
+    rx = 0; ry = 0; sc = 1;
+    if (tap) { flip += 180; tg?.HapticFeedback?.impactOccurred("light"); render("transform .7s cubic-bezier(.2,1.1,.3,1)"); }
+    else render("transform .6s cubic-bezier(.2,1.4,.4,1)");
+  }
+  document.addEventListener("pointerup", e => release(e, false));
+  document.addEventListener("pointercancel", e => release(e, true));
+
+  // gyroscope tilt inside Telegram
+  try {
+    const d = tg?.DeviceOrientation;
+    if (d) {
+      let base = null;
+      tg.onEvent("deviceOrientationChanged", () => {
+        if (touching) return;
+        if (!base) base = { b: d.beta, g: d.gamma };
+        const cl = v => Math.max(-MAX, Math.min(MAX, v));
+        rx = cl(-(d.beta - base.b) * .6); ry = cl((d.gamma - base.g) * .6); sc = 1;
+        render("transform .1s linear");
+      });
+      d.start({ refresh_rate: 60 });
+    }
+  } catch (e) {}
+
+  // ---------- buttons ----------
+  const say = t => { $("hint").textContent = t; };
+  async function copy(v, label) {
+    try { await navigator.clipboard.writeText(String(v)); } catch (e) {}
+    tg?.HapticFeedback?.impactOccurred("light"); say(label + " copied");
+  }
+  document.querySelectorAll(".chip").forEach(c => c.onclick = () => copy(c.dataset.copy === "id" ? u.id : dc, c.dataset.copy === "id" ? "ID" : "DC"));
+  $("close").onclick = () => tg ? tg.close() : say("Close works inside Telegram");
+  $("invite").onclick = () => {
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(invite) + "&text=" + encodeURIComponent("Check out your Telegram profile card");
+    if (tg?.openTelegramLink) tg.openTelegramLink(url); else copy(invite, "Invite link");
+  };
+
+  // ---------- share card as image ----------
+  function rr(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  function glow(c, x, y, rad, col) {
+    const g = c.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, col + "ee"); g.addColorStop(1, col + "00");
+    c.fillStyle = g; c.fillRect(0, 0, c.canvas.width, c.canvas.height);
+  }
+  async function loadPhoto() {
+    if (!photo) return null;
+    return new Promise(res => {
+      const i = new Image(); i.crossOrigin = "anonymous";
+      i.onload = () => res(i); i.onerror = () => res(null); i.src = photo;
+    });
+  }
+  async function makeImage() {
+    const t = THEMES[theme], W = 1080, H = 760;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const c = cv.getContext("2d");
+    c.fillStyle = t.bg; c.fillRect(0, 0, W, H);
+    glow(c, 120, 80, 520, t.c1); glow(c, 960, 700, 520, t.c2); glow(c, 700, 360, 300, t.c3);
+
+    const x = 90, y = 90, w = 900, h = 580;
+    rr(c, x, y, w, h, 56);
+    const g = c.createLinearGradient(x, y, x + w, y + h);
+    g.addColorStop(0, "rgba(255,255,255,.30)"); g.addColorStop(1, "rgba(255,255,255,.08)");
+    c.fillStyle = g; c.fill();
+    c.lineWidth = 2; c.strokeStyle = "rgba(255,255,255,.4)"; c.stroke();
+
+    c.save(); c.beginPath(); c.arc(x + 100, y + 110, 62, 0, Math.PI * 2); c.clip();
+    const img = await loadPhoto();
+    if (img) c.drawImage(img, x + 38, y + 48, 124, 124);
+    else {
+      const ag = c.createLinearGradient(x + 38, y + 48, x + 162, y + 172);
+      ag.addColorStop(0, t.c1); ag.addColorStop(1, t.c2); c.fillStyle = ag; c.fillRect(x + 38, y + 48, 124, 124);
+      c.fillStyle = "#fff"; c.font = "600 56px -apple-system, Segoe UI, Roboto, sans-serif";
+      c.textAlign = "center"; c.textBaseline = "middle"; c.fillText((u.first_name || "?")[0].toUpperCase(), x + 100, y + 112);
+    }
+    c.restore();
+    c.lineWidth = 5; c.strokeStyle = "rgba(255,255,255,.65)"; c.beginPath(); c.arc(x + 100, y + 110, 62, 0, Math.PI * 2); c.stroke();
+
+    c.textAlign = "left"; c.textBaseline = "alphabetic"; c.fillStyle = "#fff";
+    c.font = "600 50px -apple-system, Segoe UI, Roboto, sans-serif"; c.fillText(fullName.slice(0, 24), x + 190, y + 108);
+    c.fillStyle = "rgba(255,255,255,.75)"; c.font = "400 34px -apple-system, Segoe UI, Roboto, sans-serif";
+    c.fillText(u.username ? "@" + u.username : "No username", x + 190, y + 156);
+
+    c.fillStyle = "rgba(255,255,255,.68)"; c.font = "400 28px -apple-system, Segoe UI, Roboto, sans-serif";
+    c.fillText("User ID", x + 60, y + 320);
+    c.fillStyle = "#fff"; c.font = "600 74px -apple-system, Segoe UI, Roboto, sans-serif";
+    c.fillText(String(u.id).replace(/(\d{4})(?=\d)/g, "$1 "), x + 60, y + 400);
+
+    c.fillStyle = "rgba(255,255,255,.68)"; c.font = "400 28px -apple-system, Segoe UI, Roboto, sans-serif";
+    c.fillText("DC ID", x + 60, y + 490); c.fillText("Language", x + 330, y + 490);
+    c.fillStyle = "#fff"; c.font = "600 44px -apple-system, Segoe UI, Roboto, sans-serif";
+    c.fillText(dc === "N/A" ? "N/A" : "DC " + dc, x + 60, y + 545);
+    c.fillText((u.language_code || "—").toUpperCase(), x + 330, y + 545);
+    if (u.is_premium) {
+      rr(c, x + 640, y + 495, 200, 60, 30); c.fillStyle = "rgba(255,255,255,.2)"; c.fill();
+      c.fillStyle = "#fff"; c.font = "500 30px -apple-system, Segoe UI, Roboto, sans-serif"; c.textAlign = "center";
+      c.fillText("Premium", x + 740, y + 535);
+    }
+    return cv;
+  }
+  $("share").onclick = async () => {
+    say("Making your card…");
+    let cv;
+    try { cv = await makeImage(); } catch (e) { say("Couldn't make the image. Try again"); return; }
+    const blob = await new Promise(r => { try { cv.toBlob(r, "image/png"); } catch (e) { r(null); } });
+    if (blob) {
+      const file = new File([blob], "profile-card.png", { type: "image/png" });
+      try {
+        if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); say("Shared"); return; }
+      } catch (e) {}
+    }
+    let url = ""; try { url = cv.toDataURL("image/png"); } catch (e) {}
+    if (!url) { say("Couldn't export the image"); return; }
+    $("shot").src = url; $("overlay").style.display = "flex"; say("");
+  };
+  $("ovClose").onclick = () => { $("overlay").style.display = "none"; say("Drag the card to tilt · tap it to flip"); };
+</script>
+</body>
+</html>
