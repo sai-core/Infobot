@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Profile</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { --ac:#2aabee; --bg:#0f1535; --ink:#10163a; --mu:#6b72a0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    color: #fff; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 18px 20px 26px; user-select: none; -webkit-user-select: none;
+  }
+  .persp { perspective: 900px; width: 100%; max-width: 360px; touch-action: none; }
+  .card { position: relative; aspect-ratio: 1.5; transform-style: preserve-3d; will-change: transform; cursor: grab; }
+  .face {
+    position: absolute; inset: 0; border-radius: 22px; background: #fff; color: var(--ink); overflow: hidden;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    box-shadow: 0 20px 44px rgba(0,0,0,.5);
+  }
+  .back { transform: rotateY(180deg); }
+  .sheen { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(180px circle at var(--sx,30%) var(--sy,0%), rgba(42,171,238,.16), transparent 65%); }
+  .up { position: absolute; left: 0; right: 0; top: 0; height: 63%; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .avatar { width: 46px; height: 46px; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 19px; font-weight: 500; background: var(--ac); color: #fff; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .name { font-size: 20px; font-weight: 500; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .handle { font-size: 13px; color: #5b6290; }
+  .lbl { font-size: 11px; color: var(--mu); margin-bottom: 2px; }
+  .big { font-size: 26px; font-weight: 500; letter-spacing: 1.5px; font-variant-numeric: tabular-nums; }
+  .cut { position: absolute; left: 14px; right: 14px; top: 63%; border-top: 2px dashed #cdd2ea; }
+  .notch { position: absolute; top: calc(63% - 9px); width: 18px; height: 18px; border-radius: 50%; background: var(--bg); }
+  .notch.l { left: -9px; } .notch.r { right: -9px; }
+  .low { position: absolute; left: 0; right: 0; bottom: 0; height: 37%; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .val { font-size: 15px; font-weight: 500; white-space: nowrap; }
+  .val.dim { color: var(--mu); font-weight: 400; }
+  .pill { padding: 4px 10px; border-radius: 99px; font-size: 12px; background: #e6f4fd; color: #0b6a9e; flex: none; }
+  .btitle { font-size: 17px; font-weight: 500; }
+  .brow { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
+  .brow span:first-child { color: var(--mu); }
+  .flipnote { font-size: 11px; color: var(--mu); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; width: 100%; max-width: 360px; }
+  .tile {
+    display: flex; align-items: center; gap: 10px; padding: 13px; border-radius: 14px; cursor: pointer;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #fff;
+    font: 500 14px -apple-system, "Segoe UI", Roboto, sans-serif; text-align: left;
+  }
+  .tile:active { transform: scale(.97); background: rgba(255,255,255,.16); }
+  .tile svg { width: 20px; height: 20px; flex: none; stroke: var(--ac); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tile small { display: block; font-size: 11px; font-weight: 400; color: rgba(255,255,255,.6); }
+  .btn {
+    width: 100%; max-width: 360px; margin-top: 10px; padding: 13px; border-radius: 14px; font: 500 14px -apple-system, "Segoe UI", Roboto, sans-serif; cursor: pointer;
+  }
+  .btn:active { transform: scale(.98); }
+  .danger { background: rgba(239,68,68,.16); border: 1px solid rgba(239,68,68,.5); color: #ffb4b4; }
+  .hint { margin-top: 14px; font-size: 12px; color: rgba(255,255,255,.65); min-height: 16px; text-align: center; }
+
+  #overlay { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; background: rgba(5,8,25,.92); }
+  #overlay img { max-width: 100%; max-height: 62vh; border-radius: 16px; user-select: auto; -webkit-user-select: auto; -webkit-touch-callout: default; }
+  #overlay .lbl { color: rgba(255,255,255,.7); font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="persp" id="stage">
+    <div class="card" id="card">
+      <div class="face front">
+        <div class="sheen"></div>
+        <div class="up">
+          <div class="top">
+            <div class="who">
+              <div class="avatar" id="avatar">?</div>
+              <div style="min-width:0">
+                <div class="name" id="name">Loading…</div>
+                <div class="handle" id="handle"></div>
+              </div>
+            </div>
+            <div class="pill" id="prem" hidden>Premium</div>
+          </div>
+          <div>
+            <div class="lbl">User ID</div>
+            <div class="big" id="uid">—</div>
+          </div>
+        </div>
+        <div class="cut"></div><div class="notch l"></div><div class="notch r"></div>
+        <div class="low">
+          <div><div class="lbl">DC</div><div class="val" id="dc">—</div></div>
+          <div><div class="lbl">Language</div><div class="val" id="lang">—</div></div>
+          <div><div class="lbl">Phone</div><div class="val" id="phone">Hidden</div></div>
+        </div>
+      </div>
+
+      <div class="face back">
+        <div class="sheen"></div>
+        <div class="up">
+          <div class="btitle">Account details</div>
+          <div>
+            <div class="brow"><span>Member since</span><span id="since">—</span></div>
+            <div class="brow"><span>Account age</span><span id="age">—</span></div>
+          </div>
+        </div>
+        <div class="cut"></div><div class="notch l"></div><div class="notch r"></div>
+        <div class="low">
+          <div><div class="lbl">Profile link</div><div class="val" id="link">—</div></div>
+          <div class="flipnote">Tap to flip back</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <button class="tile" data-copy="id">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+      <span><small>Copy ID</small><span id="chipId">—</span></span>
+    </button>
+    <button class="tile" data-copy="dc">
+      <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+      <span><small>Copy DC</small><span id="chipDc">—</span></span>
+    </button>
+    <button class="tile" id="invite">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M19 8v6M16 11h6"/></svg>
+      Invite
+    </button>
+    <button class="tile" id="share">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></svg>
+      Share card
+    </button>
+  </div>
+  <button class="btn danger" id="close">Close</button>
+  <div class="hint" id="hint">Drag the card to tilt · tap it to flip</div>
+
+  <div id="overlay">
+    <img id="shot" alt="Your profile card">
+    <div class="lbl">Press and hold the image to save or share</div>
+    <button class="btn danger" id="ovClose" style="width:140px;margin:0">Close</button>
+  </div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  tg?.ready(); tg?.expand();
+  try { tg?.disableVerticalSwipes?.(); } catch (e) {}
+  const ACC = "#2aabee", BG = "#0f1535";
+  try { tg?.setHeaderColor?.(BG); tg?.setBackgroundColor?.(BG); } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const u = tg?.initDataUnsafe?.user || {
+    id: 7012345678, first_name: "Demo", last_name: "User",
+    username: "demo_user", language_code: "en", is_premium: true
+  };
+  const dc = q.get("dc") || "N/A";
+  const bot = q.get("bot");
+  const photo = u.photo_url || q.get("photo");
+  const fullName = [u.first_name, u.last_name].filter(Boolean).join(" ");
+  const invite = bot ? `https://t.me/${bot}?start=ref_${u.id}` : "";
+
+  // phone: shown only when the bot passes ?phone=... (user shared it), otherwise hidden
+  const digits = (q.get("phone") || "").replace(/\D/g, "");
+  const phone = digits.length >= 6 ? "+" + digits : "";
+
+  // ---------- fill card ----------
+  $("name").textContent = fullName;
+  $("handle").textContent = u.username ? "@" + u.username : "No username";
+  $("uid").textContent = String(u.id).replace(/(\d{4})(?=\d)/g, "$1 ");
+  $("dc").textContent = dc === "N/A" ? "N/A" : "DC " + dc;
+  $("lang").textContent = (u.language_code || "—").toUpperCase();
+  $("chipId").textContent = u.id;
+  $("chipDc").textContent = dc;
+  $("link").textContent = u.username ? "t.me/" + u.username : "No username";
+  if (phone) $("phone").textContent = phone; else $("phone").classList.add("dim");
+  if (u.is_premium) $("prem").hidden = false;
+  if (!invite) $("invite").style.display = "none";
+
+  const av = $("avatar");
+  const letter = () => { av.textContent = (u.first_name || "?")[0].toUpperCase(); };
+  letter();
+  if (photo) {
+    const img = new Image();
+    img.onload = () => { av.textContent = ""; av.appendChild(img); };
+    img.referrerPolicy = "no-referrer";
+    img.src = photo;
+  }
+
+  // ---------- account age (rough estimate from ID) ----------
+  const ANCH = [[2.7e6,2013.8],[1e8,2014.6],[2e8,2015.7],[3e8,2016.1],[5e8,2017.8],[1e9,2019.9],
+                [2e9,2021.0],[5e9,2022.2],[6e9,2023.0],[7e9,2024.2],[8e9,2025.2]];
+  function joinedYear(id) {
+    if (id <= ANCH[0][0]) return ANCH[0][1];
+    for (let i = 1; i < ANCH.length; i++) {
+      if (id <= ANCH[i][0]) {
+        const [a, ay] = ANCH[i-1], [b, by] = ANCH[i];
+        return ay + (by - ay) * (id - a) / (b - a);
+      }
+    }
+    return ANCH[ANCH.length-1][1];
+  }
+  const jy = joinedYear(u.id);
+  const nowY = new Date().getFullYear() + new Date().getMonth() / 12;
+  const yrs = Math.max(0, nowY - jy);
+  $("since").textContent = "~" + Math.floor(jy);
+  $("age").textContent = yrs < 1 ? "< 1 year" : "~" + yrs.toFixed(1) + " years";
+
+  // ---------- tilt + tap to flip ----------
+  const card = $("card"), stage = $("stage"), MAX = 18;
+  let rx = 0, ry = 0, flip = 0, sc = 1, touching = false, start = null;
+  function render(tr) {
+    card.style.transition = tr;
+    card.style.transform = `rotateX(${rx.toFixed(1)}deg) rotateY(${(ry + flip).toFixed(1)}deg) scale(${sc})`;
+  }
+  function tilt(e) {
+    const r = card.getBoundingClientRect();
+    let x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    x = Math.max(-.3, Math.min(1.3, x)); y = Math.max(-.3, Math.min(1.3, y));
+    rx = -(y - .5) * 2 * MAX; ry = (x - .5) * 2 * MAX; sc = 1.04;
+    document.querySelectorAll(".sheen").forEach(s => { s.style.setProperty("--sx", x * 100 + "%"); s.style.setProperty("--sy", y * 100 + "%"); });
+    render("transform .08s linear");
+  }
+  stage.addEventListener("pointerdown", e => {
+    touching = true; card.style.cursor = "grabbing";
+    start = { x: e.clientX, y: e.clientY, t: Date.now() };
+    tilt(e);
+  });
+  document.addEventListener("pointermove", e => { if (touching) tilt(e); });
+  function release(e, cancelled) {
+    if (!touching) return;
+    touching = false; card.style.cursor = "grab";
+    const tap = !cancelled && start && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8 && Date.now() - start.t < 350;
+    rx = 0; ry = 0; sc = 1;
+    if (tap) { flip += 180; tg?.HapticFeedback?.impactOccurred("light"); render("transform .7s cubic-bezier(.2,1.1,.3,1)"); }
+    else render("transform .6s cubic-bezier(.2,1.4,.4,1)");
+  }
+  document.addEventListener("pointerup", e => release(e, false));
+  document.addEventListener("pointercancel", e => release(e, true));
+
+  // gyroscope tilt inside Telegram
+  try {
+    const d = tg?.DeviceOrientation;
+    if (d) {
+      let base = null;
+      tg.onEvent("deviceOrientationChanged", () => {
+        if (touching) return;
+        if (!base) base = { b: d.beta, g: d.gamma };
+        const cl = v => Math.max(-MAX, Math.min(MAX, v));
+        rx = cl(-(d.beta - base.b) * .6); ry = cl((d.gamma - base.g) * .6); sc = 1;
+        render("transform .1s linear");
+      });
+      d.start({ refresh_rate: 60 });
+    }
+  } catch (e) {}
+
+  // ---------- buttons ----------
+  const say = t => { $("hint").textContent = t; };
+  async function copy(v, label) {
+    try { await navigator.clipboard.writeText(String(v)); } catch (e) {}
+    tg?.HapticFeedback?.impactOccurred("light"); say(label + " copied");
+  }
+  document.querySelectorAll(".tile[data-copy]").forEach(c => c.onclick = () => copy(c.dataset.copy === "id" ? u.id : dc, c.dataset.copy === "id" ? "ID" : "DC"));
+  $("close").onclick = () => tg ? tg.close() : say("Close works inside Telegram");
+  $("invite").onclick = () => {
+    const url = "https://t.me/share/url?url=" + encodeURIComponent(invite) + "&text=" + encodeURIComponent("Check out your Telegram profile card");
+    if (tg?.openTelegramLink) tg.openTelegramLink(url); else copy(invite, "Invite link");
+  };
+
+  // ---------- share card as image ----------
+  function rr(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  async function loadPhoto() {
+    if (!photo) return null;
+    return new Promise(res => {
+      const i = new Image(); i.crossOrigin = "anonymous";
+      i.onload = () => res(i); i.onerror = () => res(null); i.src = photo;
+    });
+  }
+  async function makeImage() {
+    const W = 1080, H = 720, F = "-apple-system, Segoe UI, Roboto, sans-serif";
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const c = cv.getContext("2d");
+    c.fillStyle = BG; c.fillRect(0, 0, W, H);
+
+    const x = 60, y = 60, w = 960, h = 600, cutY = y + h * .63;
+    rr(c, x, y, w, h, 48); c.fillStyle = "#fff"; c.fill();
+
+    // avatar
+    const ax = x + 90, ay = y + 100;
+    c.save(); c.beginPath(); c.arc(ax, ay, 50, 0, Math.PI * 2); c.clip();
+    const img = await loadPhoto();
+    if (img) c.drawImage(img, ax - 50, ay - 50, 100, 100);
+    else {
+      c.fillStyle = ACC; c.fillRect(ax - 50, ay - 50, 100, 100);
+      c.fillStyle = "#fff"; c.font = "500 46px " + F; c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillText((u.first_name || "?")[0].toUpperCase(), ax, ay + 2);
+    }
+    c.restore();
+
+    c.textAlign = "left"; c.textBaseline = "alphabetic";
+    c.fillStyle = "#10163a"; c.font = "500 46px " + F; c.fillText(fullName.slice(0, 20), x + 168, y + 98);
+    c.fillStyle = "#5b6290"; c.font = "400 30px " + F; c.fillText(u.username ? "@" + u.username : "No username", x + 168, y + 142);
+
+    if (u.is_premium) {
+      rr(c, x + w - 230, y + 52, 180, 54, 27); c.fillStyle = "#e6f4fd"; c.fill();
+      c.fillStyle = "#0b6a9e"; c.font = "500 26px " + F; c.textAlign = "center"; c.fillText("Premium", x + w - 140, y + 88);
+      c.textAlign = "left";
+    }
+
+    c.fillStyle = "#6b72a0"; c.font = "400 26px " + F; c.fillText("User ID", x + 60, y + 270);
+    c.fillStyle = "#10163a"; c.font = "500 76px " + F; c.fillText(String(u.id).replace(/(\d{4})(?=\d)/g, "$1 "), x + 60, y + 345);
+
+    // cut + notches
+    c.setLineDash([14, 10]); c.lineWidth = 3; c.strokeStyle = "#cdd2ea";
+    c.beginPath(); c.moveTo(x + 28, cutY); c.lineTo(x + w - 28, cutY); c.stroke(); c.setLineDash([]);
+    c.fillStyle = BG;
+    c.beginPath(); c.arc(x, cutY, 26, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(x + w, cutY, 26, 0, Math.PI * 2); c.fill();
+
+    // bottom row
+    const cols = [[x + 60, "DC", dc === "N/A" ? "N/A" : "DC " + dc, 0], [x + 330, "Language", (u.language_code || "—").toUpperCase(), 0], [x + 600, "Phone", phone || "Hidden", phone ? 0 : 1]];
+    cols.forEach(([cx, l, v, dim]) => {
+      c.fillStyle = "#6b72a0"; c.font = "400 24px " + F; c.fillText(l, cx, cutY + 62);
+      c.fillStyle = dim ? "#6b72a0" : "#10163a"; c.font = (dim ? "400" : "500") + " 38px " + F; c.fillText(v, cx, cutY + 112);
+    });
+    return cv;
+  }
+  $("share").onclick = async () => {
+    say("Making your card…");
+    let cv;
+    try { cv = await makeImage(); } catch (e) { say("Couldn't make the image. Try again"); return; }
+    const blob = await new Promise(r => { try { cv.toBlob(r, "image/png"); } catch (e) { r(null); } });
+    if (blob) {
+      const file = new File([blob], "profile-card.png", { type: "image/png" });
+      try {
+        if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); say("Shared"); return; }
+      } catch (e) {}
+    }
+    let url = ""; try { url = cv.toDataURL("image/png"); } catch (e) {}
+    if (!url) { say("Couldn't export the image"); return; }
+    $("shot").src = url; $("overlay").style.display = "flex"; say("");
+  };
+  $("ovClose").onclick = () => { $("overlay").style.display = "none"; say("Drag the card to tilt · tap it to flip"); };
+</script>
+</body>
+</html>
